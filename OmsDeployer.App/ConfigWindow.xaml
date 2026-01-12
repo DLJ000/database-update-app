@@ -1,0 +1,40 @@
+<Window x:Class="OmsDeployer.App.ConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="400" Width="500" WindowStartupLocation="CenterOwner">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Configure FTP and SSH Credentials" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
+
+        <StackPanel Grid.Row="1">
+            <Label Content="FTP Host:"/>
+            <TextBox x:Name="FtpHostTextBox" Margin="0,0,0,10"/>
+            
+            <Label Content="FTP User:"/>
+            <TextBox x:Name="FtpUserTextBox" Margin="0,0,0,10"/>
+            
+            <Label Content="FTP Password:"/>
+            <PasswordBox x:Name="FtpPasswordBox" Margin="0,0,0,10"/>
+            
+            <Label Content="SSH Host:"/>
+            <TextBox x:Name="SshHostTextBox" Margin="0,0,0,10"/>
+            
+            <Label Content="Root Password:"/>
+            <PasswordBox x:Name="RootPasswordBox" Margin="0,0,0,10"/>
+            
+            <Label Content="Tomcat Password:"/>
+            <PasswordBox x:Name="TomcatPasswordBox" Margin="0,0,0,10"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Save" Click="SaveSettings" Width="80" Margin="5"/>
+            <Button Content="Cancel" Click="CancelSettings" Width="80" Margin="5"/>
+        </StackPanel>
+    </Grid>
+</Window>
+
