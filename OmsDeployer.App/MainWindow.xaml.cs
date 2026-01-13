@@ -109,7 +109,7 @@ namespace OmsDeployer.App
             var settingsWindow = new ConfigWindow(_config, _credentialService);
             if (settingsWindow.ShowDialog() == true)
             {
-                LoadConfig();
+                // ConfigWindow already updated _config directly, just update UI
                 UpdateUI();
             }
         }

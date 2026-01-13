@@ -19,9 +19,17 @@ namespace OmsDeployer.Core.Services
 
         public void SaveCredentials(string ftpPassword, string rootPassword, string tomcatPassword)
         {
-            var data = $"{ftpPassword}|{rootPassword}|{tomcatPassword}";
-            var encrypted = Encrypt(data);
-            File.WriteAllBytes(_configPath, encrypted);
+            try
+            {
+                var data = $"{ftpPassword}|{rootPassword}|{tomcatPassword}";
+                var encrypted = Encrypt(data);
+                File.WriteAllBytes(_configPath, encrypted);
+            }
+            catch (Exception ex)
+            {
+                // Log error or throw to caller
+                throw new InvalidOperationException($"Failed to save credentials: {ex.Message}", ex);
+            }
         }
 
         public (string ftpPassword, string rootPassword, string tomcatPassword) LoadCredentials()
