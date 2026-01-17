@@ -16,8 +16,8 @@ A Windows desktop application that automates the monthly OMS deployment workflow
 
 - **.NET 8.0 SDK** or later
 - **Visual Studio 2022** (or Visual Studio Code with C# extension)
-- **SVN** command-line tools (must be on PATH)
-- **Maven** (must be on PATH)
+- **SVN** 1.14.5 command-line tools (must be on PATH)
+- **Maven** 3.3.9 (must be on PATH)
 - **Windows 10/11**
 
 ## Installation
