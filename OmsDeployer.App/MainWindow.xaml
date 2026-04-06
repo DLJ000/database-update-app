@@ -107,7 +107,7 @@
                     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                         <Button Content="1. Build WAR" x:Name="UiBuildButton" Click="UiBuildWar" Width="120" Height="35" Margin="5"/>
                         <Button Content="2. Upload to FTP" x:Name="UiUploadButton" Click="UiUploadWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="3. Stage to Tomcat" x:Name="UiStageButton" Width="120" Height="35" Margin="5" IsEnabled="False" ToolTip="To be developed" Foreground="Gray"/>
+                        <Button Content="3. Stage to Tomcat" x:Name="UiStageButton" Click="UiStageWar" Width="120" Height="35" Margin="5"/>
                         <Button Content="4. Deploy" x:Name="UiDeployButton" Width="120" Height="35" Margin="5" IsEnabled="False" ToolTip="To be developed" Foreground="Gray"/>
                     </StackPanel>
 

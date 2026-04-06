@@ -120,9 +120,12 @@ namespace OmsDeployer.App
             var hasRepoPath = !string.IsNullOrEmpty(_config.UiRepoPath) && Directory.Exists(_config.UiRepoPath);
             var hasFtpCreds = !string.IsNullOrEmpty(_config.FtpPassword);
 
+            var hasSshCreds = !string.IsNullOrEmpty(_config.SshHost) &&
+                             !string.IsNullOrEmpty(_config.RootPassword);
+
             UiBuildButton.IsEnabled = hasRepoPath && hasProfile;
             UiUploadButton.IsEnabled = hasRepoPath && hasProfile && hasFtpCreds;
-            // UiStageButton and UiDeployButton remain permanently disabled (to be developed)
+            UiStageButton.IsEnabled = hasRepoPath && hasProfile && hasSshCreds;
         }
 
         private void BrowseRepoPath(object sender, RoutedEventArgs e)
@@ -281,6 +284,30 @@ namespace OmsDeployer.App
             var success = await _uiBuildService.BuildWar(_config.UiRepoPath, profileName, progress);
             StatusTextBlock.Text = success ? "UI Build Complete" : "UI Build Failed";
             UiBuildButton.IsEnabled = true;
+        }
+
+        private async void UiStageWar(object sender, RoutedEventArgs e)
+        {
+            var profileName = UiProfileComboBox.SelectedItem?.ToString() ?? "";
+            if (string.IsNullOrEmpty(profileName))
+            {
+                System.Windows.MessageBox.Show("Please select a profile.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            UiStageButton.IsEnabled = false;
+            UiLogTextBox.Clear();
+            StatusTextBlock.Text = "Staging UI WAR...";
+
+            var progress = new Progress<string>(msg =>
+            {
+                UiLogTextBox.AppendText(msg + Environment.NewLine);
+                UiLogTextBox.ScrollToEnd();
+            });
+
+            var success = await _sshService.StageUiToTomcat(_config, profileName, progress);
+            StatusTextBlock.Text = success ? "UI Stage Complete" : "UI Stage Failed";
+            UiStageButton.IsEnabled = true;
         }
 
         private async void UiUploadWar(object sender, RoutedEventArgs e)

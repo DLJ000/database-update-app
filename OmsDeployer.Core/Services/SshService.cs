@@ -54,6 +54,46 @@ namespace OmsDeployer.Core.Services
             }
         }
 
+        public async Task<bool> StageUiToTomcat(DeploymentConfig config, string profileName, IProgress<string> progress)
+        {
+            try
+            {
+                _logger.Log($"Connecting to SSH server {config.SshHost} as root...");
+                progress.Report("Connecting to SSH server...");
+
+                using var client = new SshClient(config.SshHost, config.RootUser, config.RootPassword);
+                client.Connect();
+
+                var sourcePath = $"{config.FtpUploadPath}/{profileName}-1.0.0-prod.war";
+                var destPath = config.TomcatPath;
+
+                _logger.Log($"Moving {sourcePath} to {destPath}...");
+                progress.Report("Moving UI WAR file to tomcat folder...");
+
+                var command = client.CreateCommand($"mv {sourcePath} {destPath}");
+                await Task.Run(() => command.Execute());
+
+                if (command.ExitStatus == 0)
+                {
+                    _logger.Log($"SUCCESS: UI WAR staged to {destPath}");
+                    progress.Report("SUCCESS: UI WAR staged!");
+                    return true;
+                }
+                else
+                {
+                    _logger.Log($"ERROR: {command.Error}");
+                    progress.Report($"ERROR: {command.Error}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"ERROR: SSH staging failed: {ex.Message}");
+                progress.Report($"ERROR: {ex.Message}");
+                return false;
+            }
+        }
+
         public async Task<bool> Deploy(DeploymentConfig config, string profileName, IProgress<string> progress)
         {
             try
