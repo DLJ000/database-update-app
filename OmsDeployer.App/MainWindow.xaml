@@ -25,29 +25,22 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition/>
                                 <RowDefinition/>
-                                <RowDefinition/>
                             </Grid.RowDefinitions>
 
-                            <Label Grid.Row="0" Grid.Column="0" Content="Repo Path:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="RepoPathTextBox" Margin="5,0"/>
-                            <Button Grid.Row="0" Grid.Column="2" Content="Browse..." Click="BrowseRepoPath" Margin="5,0"/>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Profile:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="ProfileComboBox" Margin="5,2"/>
 
-                            <Label Grid.Row="1" Grid.Column="0" Content="Profile:" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="ProfileComboBox" Margin="5,0"/>
-
-                            <Label Grid.Row="2" Grid.Column="0" Content="Platform:" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="2" Grid.Column="1" x:Name="PlatformComboBox" Margin="5,0">
+                            <Label Grid.Row="1" Grid.Column="0" Content="Platform:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="PlatformComboBox" Margin="5,2">
                                 <ComboBoxItem Content="RfLambda"/>
                                 <ComboBoxItem Content="RapidRf"/>
                                 <ComboBoxItem Content="MillerMmic"/>
                                 <ComboBoxItem Content="DBWave_Tomcat9"/>
                             </ComboBox>
-                            <Button Grid.Row="2" Grid.Column="2" Content="Settings..." Click="OpenSettings" Margin="5,0"/>
                         </Grid>
                     </GroupBox>
 
@@ -87,19 +80,22 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition/>
                                 <RowDefinition/>
                             </Grid.RowDefinitions>
 
-                            <Label Grid.Row="0" Grid.Column="0" Content="UI Repo Path:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="UiRepoPathTextBox" Margin="5,0"/>
-                            <Button Grid.Row="0" Grid.Column="2" Content="Browse..." Click="BrowseUiRepoPath" Margin="5,0"/>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Profile:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="UiProfileComboBox" Margin="5,2"/>
 
-                            <Label Grid.Row="1" Grid.Column="0" Content="Profile:" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="UiProfileComboBox" Margin="5,0"/>
+                            <Label Grid.Row="1" Grid.Column="0" Content="Platform:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="UiPlatformComboBox" Margin="5,2">
+                                <ComboBoxItem Content="RfLambda"/>
+                                <ComboBoxItem Content="RapidRf"/>
+                                <ComboBoxItem Content="MillerMmic"/>
+                                <ComboBoxItem Content="DBWave_Tomcat9"/>
+                            </ComboBox>
                         </Grid>
                     </GroupBox>
 
@@ -108,7 +104,7 @@
                         <Button Content="1. Build WAR" x:Name="UiBuildButton" Click="UiBuildWar" Width="120" Height="35" Margin="5"/>
                         <Button Content="2. Upload to FTP" x:Name="UiUploadButton" Click="UiUploadWar" Width="120" Height="35" Margin="5"/>
                         <Button Content="3. Stage to Tomcat" x:Name="UiStageButton" Click="UiStageWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="4. Deploy" x:Name="UiDeployButton" Width="120" Height="35" Margin="5" IsEnabled="False" ToolTip="To be developed" Foreground="Gray"/>
+                        <Button Content="4. Deploy" x:Name="UiDeployButton" Click="UiDeployWar" Width="120" Height="35" Margin="5"/>
                     </StackPanel>
 
                     <!-- Log Output -->
@@ -121,6 +117,93 @@
                                      FontSize="10"/>
                         </ScrollViewer>
                     </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 3: Settings -->
+            <TabItem Header="Settings">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+
+                            <GroupBox Header="Repository Paths" Margin="0,0,0,10">
+                                <Grid Margin="5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" Content="OMS Repo Path:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="RepoPathTextBox" Margin="5,3"/>
+                                    <Button Grid.Row="0" Grid.Column="2" Content="Browse..." Click="BrowseRepoPath" Width="75" Margin="5,3"/>
+
+                                    <Label Grid.Row="1" Grid.Column="0" Content="UI Repo Path:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="UiRepoPathTextBox" Margin="5,3"/>
+                                    <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Click="BrowseUiRepoPath" Width="75" Margin="5,3"/>
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="FTP" Margin="0,0,0,10">
+                                <Grid Margin="5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" Content="FTP Host:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="FtpHostTextBox" Margin="5,3"/>
+
+                                    <Label Grid.Row="1" Grid.Column="0" Content="FTP User:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="FtpUserTextBox" Margin="5,3"/>
+
+                                    <Label Grid.Row="2" Grid.Column="0" Content="FTP Password:" VerticalAlignment="Center"/>
+                                    <PasswordBox Grid.Row="2" Grid.Column="1" x:Name="FtpPasswordBox" Margin="5,3"/>
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="SSH" Margin="0,0,0,10">
+                                <Grid Margin="5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" Content="SSH Host:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="SshHostTextBox" Margin="5,3"/>
+
+                                    <Label Grid.Row="1" Grid.Column="0" Content="Root Password:" VerticalAlignment="Center"/>
+                                    <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="RootPasswordBox" Margin="5,3"/>
+
+                                    <Label Grid.Row="2" Grid.Column="0" Content="Tomcat Password:" VerticalAlignment="Center"/>
+                                    <PasswordBox Grid.Row="2" Grid.Column="1" x:Name="TomcatPasswordBox" Margin="5,3"/>
+                                </Grid>
+                            </GroupBox>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Button Grid.Row="1" Content="Save Settings" Click="SaveSettings"
+                            Width="120" Height="35" HorizontalAlignment="Right" Margin="0,10,0,0"/>
                 </Grid>
             </TabItem>
 

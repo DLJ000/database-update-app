@@ -19,6 +19,11 @@ namespace OmsDeployer.App
         private SshService _sshService;
         private UiBuildService _uiBuildService;
 
+        private const string PasswordPlaceholder = "••••••••";
+        private bool _ftpPasswordIsPlaceholder = false;
+        private bool _rootPasswordIsPlaceholder = false;
+        private bool _tomcatPasswordIsPlaceholder = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -33,6 +38,7 @@ namespace OmsDeployer.App
             LoadConfig();
             ProfileComboBox.SelectionChanged += ProfileComboBox_SelectionChanged;
             UiProfileComboBox.SelectionChanged += UiProfileComboBox_SelectionChanged;
+            UiPlatformComboBox.SelectionChanged += (s, e) => UpdateUiTab();
             UpdateUI();
             UpdateUiTab();
         }
@@ -52,6 +58,30 @@ namespace OmsDeployer.App
 
             RepoPathTextBox.Text = _config.RepoPath;
             UiRepoPathTextBox.Text = _config.UiRepoPath;
+            FtpHostTextBox.Text = _config.FtpHost;
+            FtpUserTextBox.Text = _config.FtpUser;
+            SshHostTextBox.Text = _config.SshHost;
+
+            if (!string.IsNullOrEmpty(_config.FtpPassword))
+            {
+                FtpPasswordBox.Password = PasswordPlaceholder;
+                _ftpPasswordIsPlaceholder = true;
+            }
+            if (!string.IsNullOrEmpty(_config.RootPassword))
+            {
+                RootPasswordBox.Password = PasswordPlaceholder;
+                _rootPasswordIsPlaceholder = true;
+            }
+            if (!string.IsNullOrEmpty(_config.TomcatPassword))
+            {
+                TomcatPasswordBox.Password = PasswordPlaceholder;
+                _tomcatPasswordIsPlaceholder = true;
+            }
+
+            FtpPasswordBox.PasswordChanged += (s, e) => { if (_ftpPasswordIsPlaceholder && FtpPasswordBox.Password != PasswordPlaceholder) _ftpPasswordIsPlaceholder = false; };
+            RootPasswordBox.PasswordChanged += (s, e) => { if (_rootPasswordIsPlaceholder && RootPasswordBox.Password != PasswordPlaceholder) _rootPasswordIsPlaceholder = false; };
+            TomcatPasswordBox.PasswordChanged += (s, e) => { if (_tomcatPasswordIsPlaceholder && TomcatPasswordBox.Password != PasswordPlaceholder) _tomcatPasswordIsPlaceholder = false; };
+
             ScanProfiles();
             ScanUiProfiles();
         }
@@ -122,10 +152,15 @@ namespace OmsDeployer.App
 
             var hasSshCreds = !string.IsNullOrEmpty(_config.SshHost) &&
                              !string.IsNullOrEmpty(_config.RootPassword);
+            var hasTomcatCreds = !string.IsNullOrEmpty(_config.SshHost) &&
+                                !string.IsNullOrEmpty(_config.TomcatPassword);
+
+            var isRfLambda = UiPlatformComboBox.SelectedIndex == 0;
 
             UiBuildButton.IsEnabled = hasRepoPath && hasProfile;
             UiUploadButton.IsEnabled = hasRepoPath && hasProfile && hasFtpCreds;
             UiStageButton.IsEnabled = hasRepoPath && hasProfile && hasSshCreds;
+            UiDeployButton.IsEnabled = hasRepoPath && hasProfile && hasTomcatCreds && isRfLambda;
         }
 
         private void BrowseRepoPath(object sender, RoutedEventArgs e)
@@ -156,14 +191,38 @@ namespace OmsDeployer.App
             }
         }
 
-        private void OpenSettings(object sender, RoutedEventArgs e)
+        private void SaveSettings(object sender, RoutedEventArgs e)
         {
-            var settingsWindow = new ConfigWindow(_config, _credentialService);
-            if (settingsWindow.ShowDialog() == true)
-            {
-                UpdateUI();
-                UpdateUiTab();
-            }
+            _config.RepoPath = RepoPathTextBox.Text;
+            _config.UiRepoPath = UiRepoPathTextBox.Text;
+            _config.FtpHost = FtpHostTextBox.Text;
+            _config.FtpUser = FtpUserTextBox.Text;
+            _config.SshHost = SshHostTextBox.Text;
+
+            var (savedFtp, savedRoot, savedTomcat) = _credentialService.LoadCredentials();
+
+            string ftpPwd = _ftpPasswordIsPlaceholder ? savedFtp : FtpPasswordBox.Password;
+            string rootPwd = _rootPasswordIsPlaceholder ? savedRoot : RootPasswordBox.Password;
+            string tomcatPwd = _tomcatPasswordIsPlaceholder ? savedTomcat : TomcatPasswordBox.Password;
+
+            _credentialService.SaveCredentials(ftpPwd, rootPwd, tomcatPwd);
+
+            _config.FtpPassword = ftpPwd;
+            _config.RootPassword = rootPwd;
+            _config.TomcatPassword = tomcatPwd;
+
+            Properties.Settings.Default.RepoPath = _config.RepoPath;
+            Properties.Settings.Default.UiRepoPath = _config.UiRepoPath;
+            Properties.Settings.Default.FtpHost = _config.FtpHost;
+            Properties.Settings.Default.SshHost = _config.SshHost;
+            Properties.Settings.Default.Save();
+
+            ScanProfiles();
+            ScanUiProfiles();
+            UpdateUI();
+            UpdateUiTab();
+
+            StatusTextBlock.Text = "Settings saved.";
         }
 
         private async void BuildWar(object sender, RoutedEventArgs e)
@@ -284,6 +343,39 @@ namespace OmsDeployer.App
             var success = await _uiBuildService.BuildWar(_config.UiRepoPath, profileName, progress);
             StatusTextBlock.Text = success ? "UI Build Complete" : "UI Build Failed";
             UiBuildButton.IsEnabled = true;
+        }
+
+        private async void UiDeployWar(object sender, RoutedEventArgs e)
+        {
+            var profileName = UiProfileComboBox.SelectedItem?.ToString() ?? "";
+            if (string.IsNullOrEmpty(profileName))
+            {
+                System.Windows.MessageBox.Show("Please select a profile.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var result = System.Windows.MessageBox.Show(
+                $"Deploy {profileName} UI to RfLambda?\n\nThis will backup ROOT.war, shutdown Tomcat, deploy, and restart.",
+                "Confirm UI Deployment",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            UiDeployButton.IsEnabled = false;
+            UiLogTextBox.Clear();
+            StatusTextBlock.Text = "Deploying UI...";
+
+            var progress = new Progress<string>(msg =>
+            {
+                UiLogTextBox.AppendText(msg + Environment.NewLine);
+                UiLogTextBox.ScrollToEnd();
+            });
+
+            var success = await _sshService.DeployUi(_config, profileName, progress);
+            StatusTextBlock.Text = success ? "UI Deploy Complete" : "UI Deploy Failed";
+            UiDeployButton.IsEnabled = true;
         }
 
         private async void UiStageWar(object sender, RoutedEventArgs e)

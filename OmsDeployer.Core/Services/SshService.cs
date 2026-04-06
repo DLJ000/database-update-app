@@ -94,6 +94,69 @@ namespace OmsDeployer.Core.Services
             }
         }
 
+        public async Task<bool> DeployUi(DeploymentConfig config, string profileName, IProgress<string> progress)
+        {
+            try
+            {
+                _logger.Log($"Connecting to SSH server {config.SshHost} as {config.TomcatUser}...");
+                progress.Report("Connecting to SSH server...");
+
+                using var client = new SshClient(config.SshHost, config.TomcatUser, config.TomcatPassword);
+                client.Connect();
+
+                var date = DateTime.Now.ToString("yyyyMMdd");
+                var webappsRoot = $"{config.TomcatPath}/webapps/ROOT.war";
+                var backup = $"{config.TomcatPath}/oms/ROOT.war.{date}";
+                var staged = $"{config.TomcatPath}/{profileName}-1.0.0-prod.war";
+                var shutdown = $"{config.TomcatPath}/shutdown.sh";
+                var startup = $"{config.TomcatPath}/startup.sh";
+
+                // Step 1: Backup ROOT.war
+                _logger.Log($"Backing up {webappsRoot} to {backup}...");
+                progress.Report("Backing up ROOT.war...");
+                var backupCmd = client.CreateCommand($"cp {webappsRoot} {backup}");
+                await Task.Run(() => backupCmd.Execute());
+                if (backupCmd.ExitStatus != 0)
+                    progress.Report($"WARNING: Backup skipped: {backupCmd.Error}");
+                else
+                    progress.Report($"Backed up to {backup}");
+
+                // Step 2: Shutdown Tomcat
+                _logger.Log("Shutting down Tomcat...");
+                progress.Report("Shutting down Tomcat...");
+                var shutdownCmd = client.CreateCommand(shutdown);
+                await Task.Run(() => shutdownCmd.Execute());
+
+                // Step 3: Move staged WAR to webapps/ROOT.war
+                _logger.Log($"Moving {staged} to {webappsRoot}...");
+                progress.Report("Deploying new WAR...");
+                var moveCmd = client.CreateCommand($"mv {staged} {webappsRoot}");
+                await Task.Run(() => moveCmd.Execute());
+                if (moveCmd.ExitStatus != 0)
+                {
+                    _logger.Log($"ERROR: {moveCmd.Error}");
+                    progress.Report($"ERROR: {moveCmd.Error}");
+                    return false;
+                }
+
+                // Step 4: Start Tomcat
+                _logger.Log("Starting Tomcat...");
+                progress.Report("Starting Tomcat...");
+                var startupCmd = client.CreateCommand(startup);
+                await Task.Run(() => startupCmd.Execute());
+
+                _logger.Log("SUCCESS: UI deployment complete!");
+                progress.Report("SUCCESS: UI deployment complete!");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"ERROR: UI deployment failed: {ex.Message}");
+                progress.Report($"ERROR: {ex.Message}");
+                return false;
+            }
+        }
+
         public async Task<bool> Deploy(DeploymentConfig config, string profileName, IProgress<string> progress)
         {
             try
