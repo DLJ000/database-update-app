@@ -17,6 +17,7 @@ namespace OmsDeployer.App
         private BuildService _buildService;
         private FtpService _ftpService;
         private SshService _sshService;
+        private UiBuildService _uiBuildService;
 
         public MainWindow()
         {
@@ -27,26 +28,32 @@ namespace OmsDeployer.App
             _buildService = new BuildService(_logger);
             _ftpService = new FtpService(_logger);
             _sshService = new SshService(_logger);
+            _uiBuildService = new UiBuildService(_logger);
 
             LoadConfig();
             ProfileComboBox.SelectionChanged += ProfileComboBox_SelectionChanged;
+            UiProfileComboBox.SelectionChanged += UiProfileComboBox_SelectionChanged;
             UpdateUI();
+            UpdateUiTab();
         }
 
         private void LoadConfig()
         {
             // Load saved config from settings
             _config.RepoPath = Properties.Settings.Default.RepoPath ?? "C:\\Users\\darle\\Documents\\repo";
+            _config.UiRepoPath = Properties.Settings.Default.UiRepoPath ?? "C:\\Users\\darle\\Documents\\uirepo";
             _config.FtpHost = Properties.Settings.Default.FtpHost ?? "ftp.rflambda.com";
             _config.SshHost = Properties.Settings.Default.SshHost ?? "";
-            
+
             var (ftpPwd, rootPwd, tomcatPwd) = _credentialService.LoadCredentials();
             _config.FtpPassword = ftpPwd;
             _config.RootPassword = rootPwd;
             _config.TomcatPassword = tomcatPwd;
 
             RepoPathTextBox.Text = _config.RepoPath;
+            UiRepoPathTextBox.Text = _config.UiRepoPath;
             ScanProfiles();
+            ScanUiProfiles();
         }
 
         private void ScanProfiles()
@@ -57,12 +64,24 @@ namespace OmsDeployer.App
             var profiles = ProfileScanner.ScanProfiles(_config.RepoPath);
             ProfileComboBox.Items.Clear();
             foreach (var profile in profiles)
-            {
                 ProfileComboBox.Items.Add(profile);
-            }
 
             if (ProfileComboBox.Items.Count > 0)
                 ProfileComboBox.SelectedIndex = 0;
+        }
+
+        private void ScanUiProfiles()
+        {
+            if (string.IsNullOrEmpty(_config.UiRepoPath) || !Directory.Exists(_config.UiRepoPath))
+                return;
+
+            var profiles = UiProfileScanner.ScanProfiles(_config.UiRepoPath);
+            UiProfileComboBox.Items.Clear();
+            foreach (var profile in profiles)
+                UiProfileComboBox.Items.Add(profile);
+
+            if (UiProfileComboBox.Items.Count > 0)
+                UiProfileComboBox.SelectedIndex = 0;
         }
 
         private void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -70,13 +89,18 @@ namespace OmsDeployer.App
             UpdateUI();
         }
 
+        private void UiProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateUiTab();
+        }
+
         private void UpdateUI()
         {
             var hasProfile = ProfileComboBox.SelectedItem != null;
             var hasRepoPath = !string.IsNullOrEmpty(_config.RepoPath) && Directory.Exists(_config.RepoPath);
             var hasFtpCreds = !string.IsNullOrEmpty(_config.FtpPassword);
-            var hasSshCreds = !string.IsNullOrEmpty(_config.SshHost) && 
-                             !string.IsNullOrEmpty(_config.RootPassword) && 
+            var hasSshCreds = !string.IsNullOrEmpty(_config.SshHost) &&
+                             !string.IsNullOrEmpty(_config.RootPassword) &&
                              !string.IsNullOrEmpty(_config.TomcatPassword);
 
             var canBuild = hasRepoPath && hasProfile;
@@ -88,6 +112,17 @@ namespace OmsDeployer.App
             UploadButton.IsEnabled = canUpload;
             StageButton.IsEnabled = canStage;
             DeployButton.IsEnabled = canDeploy;
+        }
+
+        private void UpdateUiTab()
+        {
+            var hasProfile = UiProfileComboBox.SelectedItem != null;
+            var hasRepoPath = !string.IsNullOrEmpty(_config.UiRepoPath) && Directory.Exists(_config.UiRepoPath);
+            var hasFtpCreds = !string.IsNullOrEmpty(_config.FtpPassword);
+
+            UiBuildButton.IsEnabled = hasRepoPath && hasProfile;
+            UiUploadButton.IsEnabled = hasRepoPath && hasProfile && hasFtpCreds;
+            // UiStageButton and UiDeployButton remain permanently disabled (to be developed)
         }
 
         private void BrowseRepoPath(object sender, RoutedEventArgs e)
@@ -104,13 +139,27 @@ namespace OmsDeployer.App
             }
         }
 
+        private void BrowseUiRepoPath(object sender, RoutedEventArgs e)
+        {
+            using var dialog = new FolderBrowserDialog();
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                _config.UiRepoPath = dialog.SelectedPath;
+                UiRepoPathTextBox.Text = _config.UiRepoPath;
+                Properties.Settings.Default.UiRepoPath = _config.UiRepoPath;
+                Properties.Settings.Default.Save();
+                ScanUiProfiles();
+                UpdateUiTab();
+            }
+        }
+
         private void OpenSettings(object sender, RoutedEventArgs e)
         {
             var settingsWindow = new ConfigWindow(_config, _credentialService);
             if (settingsWindow.ShowDialog() == true)
             {
-                // ConfigWindow already updated _config directly, just update UI
                 UpdateUI();
+                UpdateUiTab();
             }
         }
 
@@ -127,7 +176,7 @@ namespace OmsDeployer.App
             LogTextBox.Clear();
             StatusTextBlock.Text = "Building...";
 
-            var progress = new Progress<string>(msg => 
+            var progress = new Progress<string>(msg =>
             {
                 LogTextBox.AppendText(msg + Environment.NewLine);
                 LogTextBox.ScrollToEnd();
@@ -144,7 +193,7 @@ namespace OmsDeployer.App
             UploadButton.IsEnabled = false;
             StatusTextBlock.Text = "Uploading...";
 
-            var progress = new Progress<string>(msg => 
+            var progress = new Progress<string>(msg =>
             {
                 LogTextBox.AppendText(msg + Environment.NewLine);
                 LogTextBox.ScrollToEnd();
@@ -161,7 +210,7 @@ namespace OmsDeployer.App
             StageButton.IsEnabled = false;
             StatusTextBlock.Text = "Staging...";
 
-            var progress = new Progress<string>(msg => 
+            var progress = new Progress<string>(msg =>
             {
                 LogTextBox.AppendText(msg + Environment.NewLine);
                 LogTextBox.ScrollToEnd();
@@ -180,6 +229,7 @@ namespace OmsDeployer.App
                 0 => Platform.RfLambda,
                 1 => Platform.RapidRf,
                 2 => Platform.MillerMmic,
+                3 => Platform.DBWave_Tomcat9,
                 _ => Platform.RfLambda
             };
 
@@ -196,7 +246,7 @@ namespace OmsDeployer.App
             DeployButton.IsEnabled = false;
             StatusTextBlock.Text = "Deploying...";
 
-            var progress = new Progress<string>(msg => 
+            var progress = new Progress<string>(msg =>
             {
                 LogTextBox.AppendText(msg + Environment.NewLine);
                 LogTextBox.ScrollToEnd();
@@ -206,6 +256,63 @@ namespace OmsDeployer.App
             StatusTextBlock.Text = success ? "Deployment Complete" : "Deployment Failed";
             DeployButton.IsEnabled = true;
         }
+
+        // --- Frontend UI Update handlers ---
+
+        private async void UiBuildWar(object sender, RoutedEventArgs e)
+        {
+            var profileName = UiProfileComboBox.SelectedItem?.ToString() ?? "";
+            if (string.IsNullOrEmpty(profileName))
+            {
+                System.Windows.MessageBox.Show("Please select a profile.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            UiBuildButton.IsEnabled = false;
+            UiLogTextBox.Clear();
+            StatusTextBlock.Text = "Building UI...";
+
+            var progress = new Progress<string>(msg =>
+            {
+                UiLogTextBox.AppendText(msg + Environment.NewLine);
+                UiLogTextBox.ScrollToEnd();
+            });
+
+            var success = await _uiBuildService.BuildWar(_config.UiRepoPath, profileName, progress);
+            StatusTextBlock.Text = success ? "UI Build Complete" : "UI Build Failed";
+            UiBuildButton.IsEnabled = true;
+        }
+
+        private async void UiUploadWar(object sender, RoutedEventArgs e)
+        {
+            var profileName = UiProfileComboBox.SelectedItem?.ToString() ?? "";
+            if (string.IsNullOrEmpty(profileName))
+            {
+                System.Windows.MessageBox.Show("Please select a profile.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var localWarPath = _uiBuildService.FindWarFile(_config.UiRepoPath, profileName);
+            if (string.IsNullOrEmpty(localWarPath))
+            {
+                System.Windows.MessageBox.Show(
+                    $"No WAR file found in {Path.Combine(_config.UiRepoPath, profileName, "target")}.\nPlease build first.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            UiUploadButton.IsEnabled = false;
+            StatusTextBlock.Text = "Uploading UI WAR...";
+
+            var progress = new Progress<string>(msg =>
+            {
+                UiLogTextBox.AppendText(msg + Environment.NewLine);
+                UiLogTextBox.ScrollToEnd();
+            });
+
+            var success = await _ftpService.UploadWarFromPath(_config, localWarPath, progress);
+            StatusTextBlock.Text = success ? "UI Upload Complete" : "UI Upload Failed";
+            UiUploadButton.IsEnabled = true;
+        }
     }
 }
-

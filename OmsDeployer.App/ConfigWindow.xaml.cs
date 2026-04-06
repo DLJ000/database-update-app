@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Forms;
 using OmsDeployer.Core.Models;
 using OmsDeployer.Core.Services;
 
@@ -19,6 +20,7 @@ namespace OmsDeployer.App
             _config = config;
             _credentialService = credentialService;
 
+            UiRepoPathTextBox.Text = _config.UiRepoPath;
             FtpHostTextBox.Text = _config.FtpHost;
             FtpUserTextBox.Text = _config.FtpUser;
             SshHostTextBox.Text = _config.SshHost;
@@ -79,9 +81,19 @@ namespace OmsDeployer.App
             }
         }
 
+        private void BrowseUiRepoPath(object sender, RoutedEventArgs e)
+        {
+            using var dialog = new FolderBrowserDialog();
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                UiRepoPathTextBox.Text = dialog.SelectedPath;
+            }
+        }
+
         private void SaveSettings(object sender, RoutedEventArgs e)
         {
             // Save to config object
+            _config.UiRepoPath = UiRepoPathTextBox.Text;
             _config.FtpHost = FtpHostTextBox.Text;
             _config.FtpUser = FtpUserTextBox.Text;
             _config.SshHost = SshHostTextBox.Text;
@@ -110,6 +122,7 @@ namespace OmsDeployer.App
             _config.TomcatPassword = tomcatPwd;
 
             // Save to settings
+            Properties.Settings.Default.UiRepoPath = _config.UiRepoPath;
             Properties.Settings.Default.FtpHost = _config.FtpHost;
             Properties.Settings.Default.SshHost = _config.SshHost;
             Properties.Settings.Default.Save();

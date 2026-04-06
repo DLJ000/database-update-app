@@ -13,6 +13,16 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
+            <Label Content="UI Repo Path:"/>
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="UiRepoPathTextBox" Grid.Column="0" Margin="0,0,5,0"/>
+                <Button Grid.Column="1" Content="Browse..." Click="BrowseUiRepoPath" Width="75"/>
+            </Grid>
+
             <Label Content="FTP Host:"/>
             <TextBox x:Name="FtpHostTextBox" Margin="0,0,0,10"/>
             

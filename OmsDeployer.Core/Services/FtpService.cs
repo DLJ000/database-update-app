@@ -66,6 +66,51 @@ namespace OmsDeployer.Core.Services
                 return false;
             }
         }
+
+        public async Task<bool> UploadWarFromPath(DeploymentConfig config, string localWarPath, IProgress<string> progress)
+        {
+            try
+            {
+                if (!File.Exists(localWarPath))
+                {
+                    _logger.Log($"ERROR: Local WAR file not found: {localWarPath}");
+                    progress.Report("ERROR: Local WAR file not found!");
+                    return false;
+                }
+
+                _logger.Log($"Connecting to FTP server {config.FtpHost}...");
+                progress.Report($"Connecting to FTP server...");
+
+                using var client = new FtpClient(config.FtpHost, config.FtpUser, config.FtpPassword);
+                await Task.Run(() => client.AutoConnect());
+
+                _logger.Log("Connected. Uploading WAR file...");
+                progress.Report("Uploading WAR file...");
+
+                var remoteFileName = Path.GetFileName(localWarPath);
+                var remotePath = $"{config.FtpUploadPath}/{remoteFileName}";
+                var result = await Task.Run(() => client.UploadFile(localWarPath, remotePath, FtpRemoteExists.Overwrite, createRemoteDir: true));
+
+                if (result == FtpStatus.Success)
+                {
+                    _logger.Log($"SUCCESS: Uploaded to {remotePath}");
+                    progress.Report("SUCCESS: Upload complete!");
+                    return true;
+                }
+                else
+                {
+                    _logger.Log($"ERROR: Upload failed with status {result}");
+                    progress.Report($"ERROR: Upload failed!");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"ERROR: FTP upload failed: {ex.Message}");
+                progress.Report($"ERROR: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
 

@@ -69,6 +69,7 @@ namespace OmsDeployer.Core.Services
                     Platform.RfLambda => "",
                     Platform.RapidRf => ".rapid",
                     Platform.MillerMmic => ".millermmic",
+                    Platform.DBWave_Tomcat9 => ".dbwave",
                     _ => ""
                 };
 

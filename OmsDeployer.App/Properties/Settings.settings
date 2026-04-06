@@ -13,6 +13,9 @@
     <Setting Name="SshHost" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="UiRepoPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\darle\Documents\uirepo</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
 

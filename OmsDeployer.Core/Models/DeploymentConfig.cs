@@ -3,6 +3,7 @@ namespace OmsDeployer.Core.Models
     public class DeploymentConfig
     {
         public string RepoPath { get; set; } = string.Empty;
+        public string UiRepoPath { get; set; } = string.Empty;
         public string ProfileName { get; set; } = string.Empty;
         public Platform Platform { get; set; } = Platform.RfLambda;
         public string FtpHost { get; set; } = "ftp.rflambda.com";
@@ -21,7 +22,8 @@ namespace OmsDeployer.Core.Models
     {
         RfLambda,      // ""
         RapidRf,       // ".rapid"
-        MillerMmic     // ".millermmic"
+        MillerMmic,    // ".millermmic"
+        DBWave_Tomcat9 // ".dbwave"
     }
 }
 

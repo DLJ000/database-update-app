@@ -71,6 +71,21 @@ namespace OmsDeployer.App.Properties
                 this["SshHost"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Users\\darle\\Documents\\uirepo")]
+        public string UiRepoPath
+        {
+            get
+            {
+                return ((string)(this["UiRepoPath"]));
+            }
+            set
+            {
+                this["UiRepoPath"] = value;
+            }
+        }
     }
 }
 
