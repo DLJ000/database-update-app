@@ -135,13 +135,11 @@ namespace OmsDeployer.App
 
             var canBuild = hasRepoPath && hasProfile;
             var canUpload = canBuild && hasFtpCreds;
-            var canStage = canUpload && hasSshCreds;
-            var canDeploy = canStage;
 
             BuildButton.IsEnabled = canBuild;
             UploadButton.IsEnabled = canUpload;
-            StageButton.IsEnabled = canStage;
-            DeployButton.IsEnabled = canDeploy;
+            StageButton.IsEnabled = canBuild;
+            DeployButton.IsEnabled = canBuild;
         }
 
         private void UpdateUiTab()
@@ -159,8 +157,8 @@ namespace OmsDeployer.App
 
             UiBuildButton.IsEnabled = hasRepoPath && hasProfile;
             UiUploadButton.IsEnabled = hasRepoPath && hasProfile && hasFtpCreds;
-            UiStageButton.IsEnabled = hasRepoPath && hasProfile && hasSshCreds;
-            UiDeployButton.IsEnabled = hasRepoPath && hasProfile && hasTomcatCreds && isRfLambda;
+            UiStageButton.IsEnabled = hasRepoPath && hasProfile;
+            UiDeployButton.IsEnabled = hasRepoPath && hasProfile && isRfLambda;
         }
 
         private void BrowseRepoPath(object sender, RoutedEventArgs e)
@@ -354,6 +352,17 @@ namespace OmsDeployer.App
                 return;
             }
 
+            var localWarPath = _uiBuildService.FindWarFile(_config.UiRepoPath, profileName);
+            if (string.IsNullOrEmpty(localWarPath))
+            {
+                System.Windows.MessageBox.Show(
+                    $"No WAR file found in {Path.Combine(_config.UiRepoPath, profileName, "target")}.\nPlease build first.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var warFileName = Path.GetFileName(localWarPath);
+
             var result = System.Windows.MessageBox.Show(
                 $"Deploy {profileName} UI to RfLambda?\n\nThis will backup ROOT.war, shutdown Tomcat, deploy, and restart.",
                 "Confirm UI Deployment",
@@ -373,7 +382,7 @@ namespace OmsDeployer.App
                 UiLogTextBox.ScrollToEnd();
             });
 
-            var success = await _sshService.DeployUi(_config, profileName, progress);
+            var success = await _sshService.DeployUi(_config, warFileName, progress);
             StatusTextBlock.Text = success ? "UI Deploy Complete" : "UI Deploy Failed";
             UiDeployButton.IsEnabled = true;
         }
@@ -387,6 +396,17 @@ namespace OmsDeployer.App
                 return;
             }
 
+            var localWarPath = _uiBuildService.FindWarFile(_config.UiRepoPath, profileName);
+            if (string.IsNullOrEmpty(localWarPath))
+            {
+                System.Windows.MessageBox.Show(
+                    $"No WAR file found in {Path.Combine(_config.UiRepoPath, profileName, "target")}.\nPlease build first.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var warFileName = Path.GetFileName(localWarPath);
+
             UiStageButton.IsEnabled = false;
             UiLogTextBox.Clear();
             StatusTextBlock.Text = "Staging UI WAR...";
@@ -397,7 +417,7 @@ namespace OmsDeployer.App
                 UiLogTextBox.ScrollToEnd();
             });
 
-            var success = await _sshService.StageUiToTomcat(_config, profileName, progress);
+            var success = await _sshService.StageUiToTomcat(_config, warFileName, progress);
             StatusTextBlock.Text = success ? "UI Stage Complete" : "UI Stage Failed";
             UiStageButton.IsEnabled = true;
         }

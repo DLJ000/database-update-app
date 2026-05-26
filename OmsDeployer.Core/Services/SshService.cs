@@ -54,7 +54,7 @@ namespace OmsDeployer.Core.Services
             }
         }
 
-        public async Task<bool> StageUiToTomcat(DeploymentConfig config, string profileName, IProgress<string> progress)
+        public async Task<bool> StageUiToTomcat(DeploymentConfig config, string warFileName, IProgress<string> progress)
         {
             try
             {
@@ -64,7 +64,7 @@ namespace OmsDeployer.Core.Services
                 using var client = new SshClient(config.SshHost, config.RootUser, config.RootPassword);
                 client.Connect();
 
-                var sourcePath = $"{config.FtpUploadPath}/{profileName}-1.0.0-prod.war";
+                var sourcePath = $"{config.FtpUploadPath}/{warFileName}";
                 var destPath = config.TomcatPath;
 
                 _logger.Log($"Moving {sourcePath} to {destPath}...");
@@ -94,7 +94,7 @@ namespace OmsDeployer.Core.Services
             }
         }
 
-        public async Task<bool> DeployUi(DeploymentConfig config, string profileName, IProgress<string> progress)
+        public async Task<bool> DeployUi(DeploymentConfig config, string warFileName, IProgress<string> progress)
         {
             try
             {
@@ -107,7 +107,7 @@ namespace OmsDeployer.Core.Services
                 var date = DateTime.Now.ToString("yyyyMMdd");
                 var webappsRoot = $"{config.TomcatPath}/webapps/ROOT.war";
                 var backup = $"{config.TomcatPath}/oms/ROOT.war.{date}";
-                var staged = $"{config.TomcatPath}/{profileName}-1.0.0-prod.war";
+                var staged = $"{config.TomcatPath}/{warFileName}";
                 var shutdown = $"{config.TomcatPath}/shutdown.sh";
                 var startup = $"{config.TomcatPath}/startup.sh";
 
@@ -167,33 +167,23 @@ namespace OmsDeployer.Core.Services
                 using var client = new SshClient(config.SshHost, config.TomcatUser, config.TomcatPassword);
                 client.Connect();
 
-                var platformSuffix = config.Platform switch
-                {
-                    Platform.RfLambda => "",
-                    Platform.RapidRf => ".rapid",
-                    Platform.MillerMmic => ".millermmic",
-                    Platform.DBWave_Tomcat9 => ".dbwave",
-                    _ => ""
-                };
-
                 var date = DateTime.Now.ToString("yyyyMMdd");
-                var currentWar = $"oms/oms{platformSuffix}.war";
-                var backupWar = $"oms/oms{platformSuffix}.war.{date}";
+                var omsWar = $"{config.TomcatPath}/oms/oms.war";
+                var backupWar = $"{config.TomcatPath}/oms/oms.war.{date}";
                 var sourceWar = $"{config.TomcatPath}/{profileName}-oms.war";
-                var targetWar = $"oms/oms{platformSuffix}.war";
+                var webappsWar = $"{config.TomcatPath}/webapps/oms.war";
 
+                // Backup existing oms/oms.war
                 _logger.Log($"Creating backup: {backupWar}...");
                 progress.Report("Creating backup...");
-
-                // Backup existing WAR
-                var backupCmd = client.CreateCommand($"mv {currentWar} {backupWar}");
+                var backupCmd = client.CreateCommand($"mv {omsWar} {backupWar}");
                 await Task.Run(() => backupCmd.Execute());
                 // Ignore error if file doesn't exist (first deployment)
 
-                _logger.Log($"Copying {sourceWar} to {targetWar}...");
-                progress.Report("Deploying new WAR file...");
-
-                var copyCmd = client.CreateCommand($"cp {sourceWar} {targetWar}");
+                // Copy staged WAR to oms/oms.war
+                _logger.Log($"Copying {sourceWar} to {omsWar}...");
+                progress.Report("Deploying to oms/oms.war...");
+                var copyCmd = client.CreateCommand($"cp {sourceWar} {omsWar}");
                 await Task.Run(() => copyCmd.Execute());
 
                 if (copyCmd.ExitStatus != 0)
@@ -203,14 +193,22 @@ namespace OmsDeployer.Core.Services
                     return false;
                 }
 
-                // If RfLambda, also copy to webapps
-                if (config.Platform == Platform.RfLambda)
-                {
-                    _logger.Log("Copying to webapps/oms.war (RfLambda)...");
-                    progress.Report("Copying to webapps...");
+                // Remove then copy to webapps/oms.war (overwrite not allowed)
+                _logger.Log($"Removing {webappsWar}...");
+                progress.Report("Removing old webapps/oms.war...");
+                var rmCmd = client.CreateCommand($"rm -f {webappsWar}");
+                await Task.Run(() => rmCmd.Execute());
 
-                    var webappsCmd = client.CreateCommand($"cp oms/oms.war webapps/oms.war");
-                    await Task.Run(() => webappsCmd.Execute());
+                _logger.Log($"Copying to {webappsWar}...");
+                progress.Report("Copying to webapps/oms.war...");
+                var webappsCmd = client.CreateCommand($"cp {omsWar} {webappsWar}");
+                await Task.Run(() => webappsCmd.Execute());
+
+                if (webappsCmd.ExitStatus != 0)
+                {
+                    _logger.Log($"ERROR copying to webapps: {webappsCmd.Error}");
+                    progress.Report($"ERROR copying to webapps: {webappsCmd.Error}");
+                    return false;
                 }
 
                 // Clean up staged file

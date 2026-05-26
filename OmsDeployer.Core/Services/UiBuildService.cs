@@ -32,6 +32,14 @@ namespace OmsDeployer.Core.Services
                 progress.Report($"Starting UI build for profile: {profileName}");
                 progress.Report($"Working directory: {profilePath}");
 
+                // SVN update before building
+                progress.Report("Running svn update...");
+                if (!await RunCommand("svn", "update", profilePath, progress))
+                {
+                    progress.Report("ERROR: svn update failed");
+                    return false;
+                }
+
                 // Find .bin files inside the bin/ subfolder
                 var binFolderPath = Path.Combine(profilePath, "bin");
                 if (!Directory.Exists(binFolderPath))
@@ -102,6 +110,57 @@ namespace OmsDeployer.Core.Services
                 return string.Empty;
 
             return Directory.GetFiles(targetPath, "*.war").FirstOrDefault() ?? string.Empty;
+        }
+
+        private async Task<bool> RunCommand(string fileName, string arguments, string workingDirectory, IProgress<string> progress)
+        {
+            try
+            {
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    WorkingDirectory = workingDirectory,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(processInfo);
+                if (process == null)
+                    return false;
+
+                process.OutputDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        _logger.Log(e.Data);
+                        progress.Report(e.Data);
+                    }
+                };
+
+                process.ErrorDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        _logger.Log($"STDERR: {e.Data}");
+                        progress.Report($"STDERR: {e.Data}");
+                    }
+                };
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                await process.WaitForExitAsync();
+                return process.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"Failed to run {fileName} {arguments}: {ex.Message}");
+                progress.Report($"Failed to run {fileName} {arguments}: {ex.Message}");
+                return false;
+            }
         }
 
         private async Task<bool> RunBinFile(string binFilePath, string workingDirectory, IProgress<string> progress)
