@@ -14,102 +14,23 @@ namespace OmsDeployer.Core.Services
             _logger = logger;
         }
 
-        public async Task<bool> StageToTomcat(DeploymentConfig config, string profileName, IProgress<string> progress)
-        {
-            try
-            {
-                _logger.Log($"Connecting to SSH server {config.SshHost} as root...");
-                progress.Report("Connecting to SSH server...");
-
-                using var client = new SshClient(config.SshHost, config.RootUser, config.RootPassword);
-                client.Connect();
-
-                var sourcePath = $"{config.FtpUploadPath}/{profileName}-oms.war";
-                var destPath = $"{config.TomcatPath}/{profileName}-oms.war";
-
-                _logger.Log($"Moving {sourcePath} to {destPath}...");
-                progress.Report("Moving WAR file to tomcat folder...");
-
-                var command = client.CreateCommand($"mv {sourcePath} {destPath}");
-                var result = await Task.Run(() => command.Execute());
-
-                if (command.ExitStatus == 0)
-                {
-                    _logger.Log($"SUCCESS: File staged to {destPath}");
-                    progress.Report("SUCCESS: File staged!");
-                    return true;
-                }
-                else
-                {
-                    _logger.Log($"ERROR: {command.Error}");
-                    progress.Report($"ERROR: {command.Error}");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Log($"ERROR: SSH staging failed: {ex.Message}");
-                progress.Report($"ERROR: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> StageUiToTomcat(DeploymentConfig config, string warFileName, IProgress<string> progress)
-        {
-            try
-            {
-                _logger.Log($"Connecting to SSH server {config.SshHost} as root...");
-                progress.Report("Connecting to SSH server...");
-
-                using var client = new SshClient(config.SshHost, config.RootUser, config.RootPassword);
-                client.Connect();
-
-                var sourcePath = $"{config.FtpUploadPath}/{warFileName}";
-                var destPath = config.TomcatPath;
-
-                _logger.Log($"Moving {sourcePath} to {destPath}...");
-                progress.Report("Moving UI WAR file to tomcat folder...");
-
-                var command = client.CreateCommand($"mv {sourcePath} {destPath}");
-                await Task.Run(() => command.Execute());
-
-                if (command.ExitStatus == 0)
-                {
-                    _logger.Log($"SUCCESS: UI WAR staged to {destPath}");
-                    progress.Report("SUCCESS: UI WAR staged!");
-                    return true;
-                }
-                else
-                {
-                    _logger.Log($"ERROR: {command.Error}");
-                    progress.Report($"ERROR: {command.Error}");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Log($"ERROR: SSH staging failed: {ex.Message}");
-                progress.Report($"ERROR: {ex.Message}");
-                return false;
-            }
-        }
-
         public async Task<bool> DeployUi(DeploymentConfig config, string warFileName, IProgress<string> progress)
         {
             try
             {
-                _logger.Log($"Connecting to SSH server {config.SshHost} as {config.TomcatUser}...");
+                var host = PlatformServer.GetHost(config.Platform);
+                _logger.Log($"Connecting to SSH server {host} as {config.TomcatUser}...");
                 progress.Report("Connecting to SSH server...");
 
-                using var client = new SshClient(config.SshHost, config.TomcatUser, config.TomcatPassword);
+                using var client = new SshClient(host, config.TomcatUser, config.TomcatPassword);
                 client.Connect();
 
                 var date = DateTime.Now.ToString("yyyyMMdd");
-                var webappsRoot = $"{config.TomcatPath}/webapps/ROOT.war";
-                var backup = $"{config.TomcatPath}/oms/ROOT.war.{date}";
-                var staged = $"{config.TomcatPath}/{warFileName}";
-                var shutdown = $"{config.TomcatPath}/shutdown.sh";
-                var startup = $"{config.TomcatPath}/startup.sh";
+                var webappsRoot = "~/webapps/ROOT.war";
+                var backup = $"~/oms/ROOT.war.{date}";
+                var staged = $"~/{warFileName}";
+                var shutdown = "~/shutdown.sh";
+                var startup = "~/startup.sh";
 
                 // Step 1: Backup ROOT.war
                 _logger.Log($"Backing up {webappsRoot} to {backup}...");
@@ -161,17 +82,18 @@ namespace OmsDeployer.Core.Services
         {
             try
             {
-                _logger.Log($"Connecting to SSH server {config.SshHost} as tomcat...");
+                var host = PlatformServer.GetHost(config.Platform);
+                _logger.Log($"Connecting to SSH server {host} as tomcat...");
                 progress.Report("Connecting to SSH server...");
 
-                using var client = new SshClient(config.SshHost, config.TomcatUser, config.TomcatPassword);
+                using var client = new SshClient(host, config.TomcatUser, config.TomcatPassword);
                 client.Connect();
 
                 var date = DateTime.Now.ToString("yyyyMMdd");
-                var omsWar = $"{config.TomcatPath}/oms/oms.war";
-                var backupWar = $"{config.TomcatPath}/oms/oms.war.{date}";
-                var sourceWar = $"{config.TomcatPath}/{profileName}-oms.war";
-                var webappsWar = $"{config.TomcatPath}/webapps/oms.war";
+                var omsWar = "~/oms/oms.war";
+                var backupWar = $"~/oms/oms.war.{date}";
+                var sourceWar = $"~/{profileName}-oms.war";
+                var webappsWar = "~/webapps/oms.war";
 
                 // Backup existing oms/oms.war
                 _logger.Log($"Creating backup: {backupWar}...");

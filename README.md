@@ -5,8 +5,7 @@ A Windows desktop application that automates the monthly OMS deployment workflow
 ## Features
 
 - **Automated Build Process**: Runs SVN update and Maven builds in sequence
-- **FTP Upload**: Securely uploads WAR files to the server
-- **SSH Staging**: Moves files to the Tomcat directory via SSH
+- **SCP Upload**: Securely uploads WAR files directly to the target server (into the tomcat user's home directory)
 - **Deployment**: Handles platform-specific deployments with automatic backups
 - **Profile Scanning**: Automatically detects available Maven profiles
 - **Secure Credential Storage**: Encrypts and stores passwords locally
@@ -32,15 +31,12 @@ A Windows desktop application that automates the monthly OMS deployment workflow
 ### First-Time Setup
 
 1. Launch the application
-2. Click **Settings...** button
+2. Go to the **Settings** tab
 3. Configure:
-   - **FTP Host**: `ftp.rflambda.com` (default)
-   - **FTP User**: `ftpuser` (default)
-   - **FTP Password**: Your FTP password
-   - **SSH Host**: Your server hostname/IP
-   - **Root Password**: SSH root password
-   - **Tomcat Password**: SSH tomcat user password
-4. Click **Save**
+   - **Tomcat Password**: SSH tomcat user password (shared across all servers)
+4. Click **Save Settings**
+
+The target server's hostname is derived automatically from the **Platform** selected on the OMS Deployment / Frontend UI Update tabs — see [Platform Selection](#platform-selection) below. All servers share the same Tomcat user (`tomcat`) and password.
 
 ### Repository Setup
 
@@ -63,29 +59,31 @@ The application follows your original workflow:
      - Build `omscore` with `mvn install`
      - Build `oms` with `mvn clean package -P <PROFILE>`
 
-2. **Upload to FTP**
-   - Click **2. Upload to FTP**
-   - The WAR file will be uploaded to `/var/www/webadmin/data/ftpuser/`
+2. **Upload (SCP)**
+   - Select the target platform
+   - Click **2. Upload (SCP)**
+   - The WAR file is uploaded via SCP directly into `~` (the `tomcat` user's home directory) on the matching server
 
-3. **Stage to Tomcat**
-   - Click **3. Stage to Tomcat**
-   - The file will be moved to `/opt/tomcat7/` via SSH (as root)
-
-4. **Deploy**
-   - Select the target platform (RfLambda, RapidRf, or MillerMmic)
-   - Click **4. Deploy**
+3. **Deploy**
+   - Select the target platform (RfLambda, RapidRf, MillerMmic, or DBWave)
+   - Click **3. Deploy**
    - Confirm the deployment
-   - The app will:
-     - Backup existing WAR: `oms/oms<PLAT>.war` → `oms/oms<PLAT>.war.YYYYMMDD`
-     - Copy new WAR to `oms/oms<PLAT>.war`
-     - If RfLambda: Also copy to `webapps/oms.war`
+   - The app will (all paths relative to the `tomcat` user's home directory, `~`, since each server's Tomcat install may differ):
+     - Backup existing WAR: `~/oms/oms.war` → `~/oms/oms.war.YYYYMMDD`
+     - Copy new WAR to `~/oms/oms.war`
+     - If RfLambda: Also copy to `~/webapps/oms.war`
      - Clean up staged file
 
 ### Platform Selection
 
-- **RfLambda**: No suffix (empty string)
-- **RapidRf**: `.rapid` suffix
-- **MillerMmic**: `.millermmic` suffix
+Each platform maps to its own server. Choosing a platform on the Upload or Deploy step sends the file to the matching server (all servers share one Tomcat installation and password):
+
+| Platform | Server | WAR suffix |
+|---|---|---|
+| RfLambda | `rflambda.com` | No suffix (empty string) |
+| RapidRf | `rapidrf.com` | `.rapid` suffix |
+| MillerMmic | `millermmic.com` | `.millermmic` suffix |
+| DBWave_Tomcat9 | `dbwave.com` | `.dbwave` suffix |
 
 ## Project Structure
 
@@ -97,8 +95,7 @@ OmsDeployer/
 │   ├── Services/                 # Business logic
 │   └── Utils/                    # Utilities
 ├── OmsDeployer.App/             # WPF application
-│   ├── MainWindow.xaml          # Main UI
-│   ├── ConfigWindow.xaml        # Settings UI
+│   ├── MainWindow.xaml          # Main UI (deployment + settings)
 │   └── Properties/              # App settings
 └── logs/                         # Log files (created at runtime)
 ```
@@ -122,15 +119,14 @@ Each deployment run creates a timestamped log file in the `logs` directory:
 - Verify repository path is correct
 - Check that the selected profile exists in `lakexy/oms/src/main/filters/`
 
-### FTP Upload Fails
-- Verify FTP credentials in Settings
-- Check network connectivity to FTP server
-- Ensure FTP server is accessible
+### SCP Upload Fails
+- Verify the Tomcat password in Settings
+- Check network connectivity to the target platform's server
+- Ensure the SSH port (22) is not blocked by firewall
 
-### SSH Operations Fail
-- Verify SSH host and credentials
-- Check that SSH port (22) is not blocked by firewall
-- Ensure user has proper permissions (root for staging, tomcat for deployment)
+### Deployment Fails
+- Verify the Tomcat password in Settings
+- Check that the `tomcat` user has proper permissions on the target server
 
 ### Profile Not Found
 - Click Browse to refresh the repository path
@@ -149,8 +145,7 @@ dotnet run --project OmsDeployer.App
 
 ### Dependencies
 
-- **FluentFTP** (v49.0.0): FTP client library
-- **SSH.NET** (v2023.0.3): SSH client library
+- **SSH.NET** (v2023.0.3): SSH/SCP client library
 
 ## License
 
@@ -159,4 +154,3 @@ This application is for internal use only.
 ## Support
 
 For issues or questions, check the log files in the `logs` directory for detailed error messages.
-

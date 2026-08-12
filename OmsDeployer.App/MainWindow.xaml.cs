@@ -15,13 +15,11 @@ namespace OmsDeployer.App
         private CredentialService _credentialService;
         private Logger _logger;
         private BuildService _buildService;
-        private FtpService _ftpService;
+        private ScpService _scpService;
         private SshService _sshService;
         private UiBuildService _uiBuildService;
 
         private const string PasswordPlaceholder = "••••••••";
-        private bool _ftpPasswordIsPlaceholder = false;
-        private bool _rootPasswordIsPlaceholder = false;
         private bool _tomcatPasswordIsPlaceholder = false;
 
         public MainWindow()
@@ -31,7 +29,7 @@ namespace OmsDeployer.App
             _credentialService = new CredentialService();
             _logger = new Logger();
             _buildService = new BuildService(_logger);
-            _ftpService = new FtpService(_logger);
+            _scpService = new ScpService(_logger);
             _sshService = new SshService(_logger);
             _uiBuildService = new UiBuildService(_logger);
 
@@ -48,38 +46,18 @@ namespace OmsDeployer.App
             // Load saved config from settings
             _config.RepoPath = Properties.Settings.Default.RepoPath ?? "C:\\Users\\darle\\Documents\\repo";
             _config.UiRepoPath = Properties.Settings.Default.UiRepoPath ?? "C:\\Users\\darle\\Documents\\uirepo";
-            _config.FtpHost = Properties.Settings.Default.FtpHost ?? "ftp.rflambda.com";
-            _config.SshHost = Properties.Settings.Default.SshHost ?? "";
 
-            var (ftpPwd, rootPwd, tomcatPwd) = _credentialService.LoadCredentials();
-            _config.FtpPassword = ftpPwd;
-            _config.RootPassword = rootPwd;
-            _config.TomcatPassword = tomcatPwd;
+            _config.TomcatPassword = _credentialService.LoadCredentials();
 
             RepoPathTextBox.Text = _config.RepoPath;
             UiRepoPathTextBox.Text = _config.UiRepoPath;
-            FtpHostTextBox.Text = _config.FtpHost;
-            FtpUserTextBox.Text = _config.FtpUser;
-            SshHostTextBox.Text = _config.SshHost;
 
-            if (!string.IsNullOrEmpty(_config.FtpPassword))
-            {
-                FtpPasswordBox.Password = PasswordPlaceholder;
-                _ftpPasswordIsPlaceholder = true;
-            }
-            if (!string.IsNullOrEmpty(_config.RootPassword))
-            {
-                RootPasswordBox.Password = PasswordPlaceholder;
-                _rootPasswordIsPlaceholder = true;
-            }
             if (!string.IsNullOrEmpty(_config.TomcatPassword))
             {
                 TomcatPasswordBox.Password = PasswordPlaceholder;
                 _tomcatPasswordIsPlaceholder = true;
             }
 
-            FtpPasswordBox.PasswordChanged += (s, e) => { if (_ftpPasswordIsPlaceholder && FtpPasswordBox.Password != PasswordPlaceholder) _ftpPasswordIsPlaceholder = false; };
-            RootPasswordBox.PasswordChanged += (s, e) => { if (_rootPasswordIsPlaceholder && RootPasswordBox.Password != PasswordPlaceholder) _rootPasswordIsPlaceholder = false; };
             TomcatPasswordBox.PasswordChanged += (s, e) => { if (_tomcatPasswordIsPlaceholder && TomcatPasswordBox.Password != PasswordPlaceholder) _tomcatPasswordIsPlaceholder = false; };
 
             ScanProfiles();
@@ -128,17 +106,13 @@ namespace OmsDeployer.App
         {
             var hasProfile = ProfileComboBox.SelectedItem != null;
             var hasRepoPath = !string.IsNullOrEmpty(_config.RepoPath) && Directory.Exists(_config.RepoPath);
-            var hasFtpCreds = !string.IsNullOrEmpty(_config.FtpPassword);
-            var hasSshCreds = !string.IsNullOrEmpty(_config.SshHost) &&
-                             !string.IsNullOrEmpty(_config.RootPassword) &&
-                             !string.IsNullOrEmpty(_config.TomcatPassword);
+            var hasTomcatCreds = !string.IsNullOrEmpty(_config.TomcatPassword);
 
             var canBuild = hasRepoPath && hasProfile;
-            var canUpload = canBuild && hasFtpCreds;
+            var canUpload = canBuild && hasTomcatCreds;
 
             BuildButton.IsEnabled = canBuild;
             UploadButton.IsEnabled = canUpload;
-            StageButton.IsEnabled = canBuild;
             DeployButton.IsEnabled = canBuild;
         }
 
@@ -146,18 +120,12 @@ namespace OmsDeployer.App
         {
             var hasProfile = UiProfileComboBox.SelectedItem != null;
             var hasRepoPath = !string.IsNullOrEmpty(_config.UiRepoPath) && Directory.Exists(_config.UiRepoPath);
-            var hasFtpCreds = !string.IsNullOrEmpty(_config.FtpPassword);
-
-            var hasSshCreds = !string.IsNullOrEmpty(_config.SshHost) &&
-                             !string.IsNullOrEmpty(_config.RootPassword);
-            var hasTomcatCreds = !string.IsNullOrEmpty(_config.SshHost) &&
-                                !string.IsNullOrEmpty(_config.TomcatPassword);
+            var hasTomcatCreds = !string.IsNullOrEmpty(_config.TomcatPassword);
 
             var isRfLambda = UiPlatformComboBox.SelectedIndex == 0;
 
             UiBuildButton.IsEnabled = hasRepoPath && hasProfile;
-            UiUploadButton.IsEnabled = hasRepoPath && hasProfile && hasFtpCreds;
-            UiStageButton.IsEnabled = hasRepoPath && hasProfile;
+            UiUploadButton.IsEnabled = hasRepoPath && hasProfile && hasTomcatCreds;
             UiDeployButton.IsEnabled = hasRepoPath && hasProfile && isRfLambda;
         }
 
@@ -193,26 +161,16 @@ namespace OmsDeployer.App
         {
             _config.RepoPath = RepoPathTextBox.Text;
             _config.UiRepoPath = UiRepoPathTextBox.Text;
-            _config.FtpHost = FtpHostTextBox.Text;
-            _config.FtpUser = FtpUserTextBox.Text;
-            _config.SshHost = SshHostTextBox.Text;
 
-            var (savedFtp, savedRoot, savedTomcat) = _credentialService.LoadCredentials();
+            var savedTomcatPwd = _credentialService.LoadCredentials();
+            string tomcatPwd = _tomcatPasswordIsPlaceholder ? savedTomcatPwd : TomcatPasswordBox.Password;
 
-            string ftpPwd = _ftpPasswordIsPlaceholder ? savedFtp : FtpPasswordBox.Password;
-            string rootPwd = _rootPasswordIsPlaceholder ? savedRoot : RootPasswordBox.Password;
-            string tomcatPwd = _tomcatPasswordIsPlaceholder ? savedTomcat : TomcatPasswordBox.Password;
+            _credentialService.SaveCredentials(tomcatPwd);
 
-            _credentialService.SaveCredentials(ftpPwd, rootPwd, tomcatPwd);
-
-            _config.FtpPassword = ftpPwd;
-            _config.RootPassword = rootPwd;
             _config.TomcatPassword = tomcatPwd;
 
             Properties.Settings.Default.RepoPath = _config.RepoPath;
             Properties.Settings.Default.UiRepoPath = _config.UiRepoPath;
-            Properties.Settings.Default.FtpHost = _config.FtpHost;
-            Properties.Settings.Default.SshHost = _config.SshHost;
             Properties.Settings.Default.Save();
 
             ScanProfiles();
@@ -222,6 +180,15 @@ namespace OmsDeployer.App
 
             StatusTextBlock.Text = "Settings saved.";
         }
+
+        private static Platform ParsePlatform(int selectedIndex) => selectedIndex switch
+        {
+            0 => Platform.RfLambda,
+            1 => Platform.RapidRf,
+            2 => Platform.MillerMmic,
+            3 => Platform.DBWave_Tomcat9,
+            _ => Platform.RfLambda
+        };
 
         private async void BuildWar(object sender, RoutedEventArgs e)
         {
@@ -250,6 +217,7 @@ namespace OmsDeployer.App
         private async void UploadWar(object sender, RoutedEventArgs e)
         {
             _config.ProfileName = ProfileComboBox.SelectedItem?.ToString() ?? "";
+            _config.Platform = ParsePlatform(PlatformComboBox.SelectedIndex);
             UploadButton.IsEnabled = false;
             StatusTextBlock.Text = "Uploading...";
 
@@ -259,39 +227,15 @@ namespace OmsDeployer.App
                 LogTextBox.ScrollToEnd();
             });
 
-            var success = await _ftpService.UploadWar(_config, _config.ProfileName, progress);
+            var success = await _scpService.UploadWar(_config, _config.ProfileName, progress);
             StatusTextBlock.Text = success ? "Upload Complete" : "Upload Failed";
             UploadButton.IsEnabled = true;
-        }
-
-        private async void StageWar(object sender, RoutedEventArgs e)
-        {
-            _config.ProfileName = ProfileComboBox.SelectedItem?.ToString() ?? "";
-            StageButton.IsEnabled = false;
-            StatusTextBlock.Text = "Staging...";
-
-            var progress = new Progress<string>(msg =>
-            {
-                LogTextBox.AppendText(msg + Environment.NewLine);
-                LogTextBox.ScrollToEnd();
-            });
-
-            var success = await _sshService.StageToTomcat(_config, _config.ProfileName, progress);
-            StatusTextBlock.Text = success ? "Staging Complete" : "Staging Failed";
-            StageButton.IsEnabled = true;
         }
 
         private async void DeployWar(object sender, RoutedEventArgs e)
         {
             _config.ProfileName = ProfileComboBox.SelectedItem?.ToString() ?? "";
-            _config.Platform = PlatformComboBox.SelectedIndex switch
-            {
-                0 => Platform.RfLambda,
-                1 => Platform.RapidRf,
-                2 => Platform.MillerMmic,
-                3 => Platform.DBWave_Tomcat9,
-                _ => Platform.RfLambda
-            };
+            _config.Platform = ParsePlatform(PlatformComboBox.SelectedIndex);
 
             var result = System.Windows.MessageBox.Show(
                 $"Deploy {_config.ProfileName} to {_config.Platform}?\n\nThis will backup the current WAR and deploy the new one.",
@@ -362,6 +306,7 @@ namespace OmsDeployer.App
             }
 
             var warFileName = Path.GetFileName(localWarPath);
+            _config.Platform = ParsePlatform(UiPlatformComboBox.SelectedIndex);
 
             var result = System.Windows.MessageBox.Show(
                 $"Deploy {profileName} UI to RfLambda?\n\nThis will backup ROOT.war, shutdown Tomcat, deploy, and restart.",
@@ -387,41 +332,6 @@ namespace OmsDeployer.App
             UiDeployButton.IsEnabled = true;
         }
 
-        private async void UiStageWar(object sender, RoutedEventArgs e)
-        {
-            var profileName = UiProfileComboBox.SelectedItem?.ToString() ?? "";
-            if (string.IsNullOrEmpty(profileName))
-            {
-                System.Windows.MessageBox.Show("Please select a profile.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            var localWarPath = _uiBuildService.FindWarFile(_config.UiRepoPath, profileName);
-            if (string.IsNullOrEmpty(localWarPath))
-            {
-                System.Windows.MessageBox.Show(
-                    $"No WAR file found in {Path.Combine(_config.UiRepoPath, profileName, "target")}.\nPlease build first.",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            var warFileName = Path.GetFileName(localWarPath);
-
-            UiStageButton.IsEnabled = false;
-            UiLogTextBox.Clear();
-            StatusTextBlock.Text = "Staging UI WAR...";
-
-            var progress = new Progress<string>(msg =>
-            {
-                UiLogTextBox.AppendText(msg + Environment.NewLine);
-                UiLogTextBox.ScrollToEnd();
-            });
-
-            var success = await _sshService.StageUiToTomcat(_config, warFileName, progress);
-            StatusTextBlock.Text = success ? "UI Stage Complete" : "UI Stage Failed";
-            UiStageButton.IsEnabled = true;
-        }
-
         private async void UiUploadWar(object sender, RoutedEventArgs e)
         {
             var profileName = UiProfileComboBox.SelectedItem?.ToString() ?? "";
@@ -440,6 +350,8 @@ namespace OmsDeployer.App
                 return;
             }
 
+            _config.Platform = ParsePlatform(UiPlatformComboBox.SelectedIndex);
+
             UiUploadButton.IsEnabled = false;
             StatusTextBlock.Text = "Uploading UI WAR...";
 
@@ -449,7 +361,7 @@ namespace OmsDeployer.App
                 UiLogTextBox.ScrollToEnd();
             });
 
-            var success = await _ftpService.UploadWarFromPath(_config, localWarPath, progress);
+            var success = await _scpService.UploadWarFromPath(_config, localWarPath, progress);
             StatusTextBlock.Text = success ? "UI Upload Complete" : "UI Upload Failed";
             UiUploadButton.IsEnabled = true;
         }

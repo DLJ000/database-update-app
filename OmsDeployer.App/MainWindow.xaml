@@ -47,9 +47,8 @@
                     <!-- Action Buttons -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                         <Button Content="1. Build WAR" x:Name="BuildButton" Click="BuildWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="2. Upload to FTP" x:Name="UploadButton" Click="UploadWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="3. Stage to Tomcat" x:Name="StageButton" Click="StageWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="4. Deploy" x:Name="DeployButton" Click="DeployWar" Width="120" Height="35" Margin="5"/>
+                        <Button Content="2. Upload (SCP)" x:Name="UploadButton" Click="UploadWar" Width="120" Height="35" Margin="5"/>
+                        <Button Content="3. Deploy" x:Name="DeployButton" Click="DeployWar" Width="120" Height="35" Margin="5"/>
                     </StackPanel>
 
                     <!-- Log Output -->
@@ -102,9 +101,8 @@
                     <!-- Action Buttons -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                         <Button Content="1. Build WAR" x:Name="UiBuildButton" Click="UiBuildWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="2. Upload to FTP" x:Name="UiUploadButton" Click="UiUploadWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="3. Stage to Tomcat" x:Name="UiStageButton" Click="UiStageWar" Width="120" Height="35" Margin="5"/>
-                        <Button Content="4. Deploy" x:Name="UiDeployButton" Click="UiDeployWar" Width="120" Height="35" Margin="5"/>
+                        <Button Content="2. Upload (SCP)" x:Name="UiUploadButton" Click="UiUploadWar" Width="120" Height="35" Margin="5"/>
+                        <Button Content="3. Deploy" x:Name="UiDeployButton" Click="UiDeployWar" Width="120" Height="35" Margin="5"/>
                     </StackPanel>
 
                     <!-- Log Output -->
@@ -153,7 +151,7 @@
                                 </Grid>
                             </GroupBox>
 
-                            <GroupBox Header="FTP" Margin="0,0,0,10">
+                            <GroupBox Header="Tomcat" Margin="0,0,0,10">
                                 <Grid Margin="5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="110"/>
@@ -161,41 +159,10 @@
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <Label Grid.Row="0" Grid.Column="0" Content="FTP Host:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="FtpHostTextBox" Margin="5,3"/>
-
-                                    <Label Grid.Row="1" Grid.Column="0" Content="FTP User:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="FtpUserTextBox" Margin="5,3"/>
-
-                                    <Label Grid.Row="2" Grid.Column="0" Content="FTP Password:" VerticalAlignment="Center"/>
-                                    <PasswordBox Grid.Row="2" Grid.Column="1" x:Name="FtpPasswordBox" Margin="5,3"/>
-                                </Grid>
-                            </GroupBox>
-
-                            <GroupBox Header="SSH" Margin="0,0,0,10">
-                                <Grid Margin="5">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="110"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <Label Grid.Row="0" Grid.Column="0" Content="SSH Host:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="SshHostTextBox" Margin="5,3"/>
-
-                                    <Label Grid.Row="1" Grid.Column="0" Content="Root Password:" VerticalAlignment="Center"/>
-                                    <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="RootPasswordBox" Margin="5,3"/>
-
-                                    <Label Grid.Row="2" Grid.Column="0" Content="Tomcat Password:" VerticalAlignment="Center"/>
-                                    <PasswordBox Grid.Row="2" Grid.Column="1" x:Name="TomcatPasswordBox" Margin="5,3"/>
+                                    <Label Grid.Row="0" Grid.Column="0" Content="Tomcat Password:" VerticalAlignment="Center"/>
+                                    <PasswordBox Grid.Row="0" Grid.Column="1" x:Name="TomcatPasswordBox" Margin="5,3"/>
                                 </Grid>
                             </GroupBox>
 

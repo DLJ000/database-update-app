@@ -17,12 +17,11 @@ namespace OmsDeployer.Core.Services
             _configPath = Path.Combine(appFolder, "config.encrypted");
         }
 
-        public void SaveCredentials(string ftpPassword, string rootPassword, string tomcatPassword)
+        public void SaveCredentials(string tomcatPassword)
         {
             try
             {
-                var data = $"{ftpPassword}|{rootPassword}|{tomcatPassword}";
-                var encrypted = Encrypt(data);
+                var encrypted = Encrypt(tomcatPassword);
                 File.WriteAllBytes(_configPath, encrypted);
             }
             catch (Exception ex)
@@ -32,18 +31,13 @@ namespace OmsDeployer.Core.Services
             }
         }
 
-        public (string ftpPassword, string rootPassword, string tomcatPassword) LoadCredentials()
+        public string LoadCredentials()
         {
             if (!File.Exists(_configPath))
-                return (string.Empty, string.Empty, string.Empty);
+                return string.Empty;
 
             var encrypted = File.ReadAllBytes(_configPath);
-            var decrypted = Decrypt(encrypted);
-            var parts = decrypted.Split('|');
-            
-            return parts.Length == 3 
-                ? (parts[0], parts[1], parts[2]) 
-                : (string.Empty, string.Empty, string.Empty);
+            return Decrypt(encrypted);
         }
 
         private byte[] Encrypt(string plainText)
@@ -107,4 +101,3 @@ namespace OmsDeployer.Core.Services
         }
     }
 }
-

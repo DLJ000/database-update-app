@@ -44,36 +44,6 @@ namespace OmsDeployer.App.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("ftp.rflambda.com")]
-        public string FtpHost
-        {
-            get
-            {
-                return ((string)(this["FtpHost"]));
-            }
-            set
-            {
-                this["FtpHost"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string SshHost
-        {
-            get
-            {
-                return ((string)(this["SshHost"]));
-            }
-            set
-            {
-                this["SshHost"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("C:\\Users\\darle\\Documents\\uirepo")]
         public string UiRepoPath
         {

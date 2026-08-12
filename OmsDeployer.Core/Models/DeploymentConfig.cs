@@ -6,16 +6,8 @@ namespace OmsDeployer.Core.Models
         public string UiRepoPath { get; set; } = string.Empty;
         public string ProfileName { get; set; } = string.Empty;
         public Platform Platform { get; set; } = Platform.RfLambda;
-        public string FtpHost { get; set; } = "ftp.rflambda.com";
-        public string FtpUser { get; set; } = "ftpuser";
-        public string FtpPassword { get; set; } = string.Empty;
-        public string SshHost { get; set; } = string.Empty;
-        public string RootUser { get; set; } = "root";
-        public string RootPassword { get; set; } = string.Empty;
         public string TomcatUser { get; set; } = "tomcat";
         public string TomcatPassword { get; set; } = string.Empty;
-        public string TomcatPath { get; set; } = "/opt/tomcat7";
-        public string FtpUploadPath { get; set; } = "/var/www/webadmin/data/ftpuser";
     }
 
     public enum Platform
@@ -25,5 +17,16 @@ namespace OmsDeployer.Core.Models
         MillerMmic,    // ".millermmic"
         DBWave_Tomcat9 // ".dbwave"
     }
-}
 
+    public static class PlatformServer
+    {
+        public static string GetHost(Platform platform) => platform switch
+        {
+            Platform.RfLambda => "rflambda.com",
+            Platform.RapidRf => "rapidrf.com",
+            Platform.MillerMmic => "millermmic.com",
+            Platform.DBWave_Tomcat9 => "dbwave.com",
+            _ => "rflambda.com"
+        };
+    }
+}
